@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # ~/.local/bin/hosts_manager_gtk.py
 
-import subprocess
 import os
+import subprocess
 import sys
 
 if len(sys.argv) > 1 and sys.argv[1] == "--root-helper":
@@ -24,13 +24,28 @@ if len(sys.argv) > 1 and sys.argv[1] == "--root-helper":
             sys.stdout.flush()
         elif cmd == "FLUSH_DNS":
             try:
-                if subprocess.run(["which", "resolvectl"], capture_output=True).returncode == 0:
+                if (
+                    subprocess.run(
+                        ["which", "resolvectl"], capture_output=True
+                    ).returncode
+                    == 0
+                ):
                     subprocess.run(["resolvectl", "flush-caches"])
-                elif subprocess.run(["which", "systemd-resolve"], capture_output=True).returncode == 0:
+                elif (
+                    subprocess.run(
+                        ["which", "systemd-resolve"], capture_output=True
+                    ).returncode
+                    == 0
+                ):
                     subprocess.run(["systemd-resolve", "--flush-caches"])
                 else:
-                    subprocess.run(["systemctl", "restart", "systemd-resolved"], stderr=subprocess.DEVNULL)
-                    subprocess.run(["systemctl", "restart", "nscd"], stderr=subprocess.DEVNULL)
+                    subprocess.run(
+                        ["systemctl", "restart", "systemd-resolved"],
+                        stderr=subprocess.DEVNULL,
+                    )
+                    subprocess.run(
+                        ["systemctl", "restart", "nscd"], stderr=subprocess.DEVNULL
+                    )
                 print("OK")
             except Exception as e:
                 print(f"ERROR: {e}")
@@ -38,12 +53,14 @@ if len(sys.argv) > 1 and sys.argv[1] == "--root-helper":
     sys.exit(0)
 
 try:
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, GLib, Gdk
+    import gi  # type: ignore
+
+    gi.require_version("Gtk", "3.0")  # type: ignore
+    from gi.repository import Gtk  # type: ignore
 except ImportError:
     print("Installa: sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0")
     sys.exit(1)
+
 
 class HostsManager:
     def __init__(self):
@@ -136,7 +153,9 @@ class HostsManager:
         self.file_lines = []
 
         try:
-            result = subprocess.run(["cat", self.hosts_file], capture_output=True, text=True)
+            result = subprocess.run(
+                ["cat", self.hosts_file], capture_output=True, text=True
+            )
             for orig_line in result.stdout.splitlines():
                 line = orig_line.strip()
 
@@ -158,7 +177,12 @@ class HostsManager:
                         self.file_lines.append({"type": "raw", "text": orig_line})
                         continue
 
-                    host_obj = {"type": "host", "parts": parts, "is_active": is_active, "checkbox": None}
+                    host_obj = {
+                        "type": "host",
+                        "parts": parts,
+                        "is_active": is_active,
+                        "checkbox": None,
+                    }
                     self.file_lines.append(host_obj)
 
                     if self.current_filter == "ipv4" and ":" in ip:
@@ -204,7 +228,7 @@ class HostsManager:
         if self.root_proc is not None:
             try:
                 self.root_proc.terminate()
-            except:
+            except Exception:
                 pass
         Gtk.main_quit()
 
@@ -216,8 +240,12 @@ class HostsManager:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
             )
+
+        assert self.root_proc is not None
+        assert self.root_proc.stdin is not None
+        assert self.root_proc.stdout is not None
 
         self.root_proc.stdin.write("WRITE\n")
         self.root_proc.stdin.write(f"{len(content)}\n")
@@ -236,8 +264,12 @@ class HostsManager:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
             )
+
+        assert self.root_proc is not None
+        assert self.root_proc.stdin is not None
+        assert self.root_proc.stdout is not None
 
         self.root_proc.stdin.write("FLUSH_DNS\n")
         self.root_proc.stdin.flush()
@@ -260,8 +292,12 @@ class HostsManager:
         self.load_hosts()
 
     def on_add(self, button):
-        dialog = Gtk.Dialog(title="Aggiungi Host", parent=self.window, flags=Gtk.DialogFlags.MODAL)
-        dialog.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK)
+        dialog = Gtk.Dialog(
+            title="Aggiungi Host", parent=self.window, flags=Gtk.DialogFlags.MODAL
+        )
+        dialog.add_buttons(
+            Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OK, Gtk.ResponseType.OK
+        )
 
         box = dialog.get_content_area()
         box.set_spacing(10)
@@ -286,7 +322,7 @@ class HostsManager:
                 new_line = f"{ip} {host}\n"
 
                 try:
-                    with open(self.hosts_file, 'r') as orig:
+                    with open(self.hosts_file, "r") as orig:
                         content = orig.read()
                     if content and not content.endswith("\n"):
                         content += "\n"
@@ -342,7 +378,7 @@ class HostsManager:
             flags=Gtk.DialogFlags.MODAL,
             type=Gtk.MessageType.ERROR,
             buttons=Gtk.ButtonsType.OK,
-            message_format=message
+            message_format=message,
         )
         dialog.run()
         dialog.destroy()
@@ -353,10 +389,11 @@ class HostsManager:
             flags=Gtk.DialogFlags.MODAL,
             type=Gtk.MessageType.INFO,
             buttons=Gtk.ButtonsType.OK,
-            message_format=message
+            message_format=message,
         )
         dialog.run()
         dialog.destroy()
+
 
 if __name__ == "__main__":
     app = HostsManager()
